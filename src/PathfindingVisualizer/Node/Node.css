@@ -1,0 +1,38 @@
+.node {
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  border: 1px solid #d3d3d3;
+  display: inline-block;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.node:hover {
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.node-start {
+  background-color: #28a745; /* Green */
+  border: 2px solid #218838;
+}
+
+.node-finish {
+  background-color: #dc3545; /* Red */
+  border: 2px solid #c82333;
+}
+
+.node-wall {
+  background-color: #343a40; /* Dark gray */
+  border: 1px solid #212529;
+}
+
+.node-visited {
+  background-color: #fdd835; /* Yellow */
+  border: 1px solid #fbc02d;
+}
+
+.node-shortest-path {
+  background-color: #007bff; /* Blue */
+  border: 1px solid #0056b3;
+}
