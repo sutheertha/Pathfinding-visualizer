@@ -1,4 +1,3 @@
-// Breadth-First Search for unweighted grid graphs
 export function bfs(grid, startNode, finishNode) {
   const visitedNodesInOrder = [];
   const queue = [];
