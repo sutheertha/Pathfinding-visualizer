@@ -7,17 +7,24 @@ const Node = ({
   isStart,
   isFinish,
   isWall,
+  isVisited,
+  distance,
+  isPath,
   onMouseDown,
   onMouseEnter,
   onMouseUp,
 }) => {
-  const extraClassName = isFinish
-    ? 'node-finish'
-    : isStart
-    ? 'node-start'
-    : isWall
-    ? 'node-wall'
-    : '';
+  const getDisplay = () => {
+    if (isStart) return '⛳';
+    if (isFinish) return '🏁';
+    if (isPath && distance !== Infinity) return distance;
+    return '';
+  };
+
+  let extraClassName = '';
+  if (isFinish) extraClassName = 'node-finish';
+  else if (isStart) extraClassName = 'node-start';
+  else if (isWall) extraClassName = 'node-wall';
 
   return (
     <div
@@ -27,7 +34,9 @@ const Node = ({
       onMouseDown={() => onMouseDown(row, col)}
       onMouseEnter={() => onMouseEnter(row, col)}
       onMouseUp={onMouseUp}
-    />
+    >
+      <div className="node-content">{getDisplay()}</div>
+    </div>
   );
 };
 

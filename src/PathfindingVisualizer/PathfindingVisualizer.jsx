@@ -3,11 +3,15 @@ import React, {
   useEffect,
   forwardRef,
   useImperativeHandle,
+  useRef,
 } from 'react';
 import { dijkstra, getNodesInShortestPathOrder } from '../algorithms/dijkstra';
 import { bfs } from '../algorithms/bfs';
 import Node from './Node/Node';
 import './PathfindingVisualizer.css';
+
+const ANIMATION_SPEED = 10;
+const PATH_ANIMATION_SPEED = 50;
 
 const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   const [grid, setGrid] = useState([]);
@@ -15,6 +19,8 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   const [start, setStart] = useState({ row: 10, col: 5 });
   const [end, setEnd] = useState({ row: 10, col: 45 });
   const [mode, setMode] = useState('wall');
+  const [isVisualizing, setIsVisualizing] = useState(false);
+  const timeoutIds = useRef([]);
 
   useEffect(() => {
     setGrid(getInitialGrid(start, end));
@@ -27,6 +33,9 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   }));
 
   const runVisualization = () => {
+    if (isVisualizing) return;
+    setIsVisualizing(true);
+
     const freshGrid = resetVisited(grid, start, end);
     setGrid(freshGrid);
     const startNode = freshGrid[start.row][start.col];
@@ -49,6 +58,10 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   };
 
   const resetGrid = () => {
+    timeoutIds.current.forEach((id) => clearTimeout(id));
+    timeoutIds.current = [];
+    setIsVisualizing(false);
+
     const clearedGrid = getInitialGrid(start, end);
     setGrid(clearedGrid);
     for (let row of clearedGrid) {
@@ -60,6 +73,8 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   };
 
   const handleClick = (row, col) => {
+    if (isVisualizing) return;
+
     if (mode === 'start') {
       setStart({ row, col });
     } else if (mode === 'end') {
@@ -72,7 +87,7 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
   };
 
   const handleMouseEnter = (row, col) => {
-    if (!mouseIsPressed || mode !== 'wall') return;
+    if (!mouseIsPressed || mode !== 'wall' || isVisualizing) return;
     const newGrid = getNewGridWithWallToggled(grid, row, col);
     setGrid(newGrid);
   };
@@ -81,25 +96,46 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
 
   const animateAlgorithm = (visited, path) => {
     for (let i = 0; i <= visited.length; i++) {
-      if (i === visited.length) {
-        setTimeout(() => animateShortestPath(path), 10 * i);
-        return;
-      }
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
+        if (i === visited.length) {
+          animateShortestPath(path);
+          return;
+        }
         const node = visited[i];
         if (isStartOrEnd(node)) return;
-        document.getElementById(`node-${node.row}-${node.col}`).className = 'node node-visited';
-      }, 10 * i);
+        const el = document.getElementById(`node-${node.row}-${node.col}`);
+        if (el) el.className = 'node node-visited';
+      }, ANIMATION_SPEED * i);
+      timeoutIds.current.push(timeout);
     }
   };
 
   const animateShortestPath = (path) => {
     for (let i = 0; i < path.length; i++) {
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         const node = path[i];
         if (isStartOrEnd(node)) return;
-        document.getElementById(`node-${node.row}-${node.col}`).className = 'node node-shortest-path';
-      }, 50 * i);
+
+        // Set isPath = true for this node in grid state
+        setGrid((prevGrid) =>
+          prevGrid.map((row) =>
+            row.map((n) =>
+              n.row === node.row && n.col === node.col
+                ? { ...n, isPath: true }
+                : n
+            )
+          )
+        );
+
+        // Animate visually via class (optional)
+        const el = document.getElementById(`node-${node.row}-${node.col}`);
+        if (el) el.className = 'node node-shortest-path';
+
+        if (i === path.length - 1) {
+          setTimeout(() => setIsVisualizing(false), PATH_ANIMATION_SPEED);
+        }
+      }, PATH_ANIMATION_SPEED * i);
+      timeoutIds.current.push(timeout);
     }
   };
 
@@ -115,6 +151,7 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
             <Node
               key={`${node.row}-${node.col}`}
               {...node}
+              isPath={node.isPath}
               isStart={node.row === start.row && node.col === start.col}
               isFinish={node.row === end.row && node.col === end.col}
               onMouseDown={() => handleClick(node.row, node.col)}
@@ -127,6 +164,8 @@ const PathfindingVisualizer = forwardRef(({ algorithm }, ref) => {
     </div>
   );
 });
+
+// ===== Helper Functions =====
 
 const getInitialGrid = (start, end) => {
   const grid = [];
@@ -149,6 +188,7 @@ const createNode = (col, row, start, end) => ({
   isVisited: false,
   isWall: false,
   previousNode: null,
+  isPath: false,
 });
 
 const resetVisited = (grid, start, end) =>
@@ -160,6 +200,7 @@ const resetVisited = (grid, start, end) =>
       previousNode: null,
       isStart: node.row === start.row && node.col === start.col,
       isFinish: node.row === end.row && node.col === end.col,
+      isPath: false,
     }))
   );
 
